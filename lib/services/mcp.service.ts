@@ -32,7 +32,7 @@ interface MCPSearchParams {
 }
 
 interface MCPSearchResponse {
-  companies: MCPCompany[];
+  entreprises: MCPCompany[];
   total: number;
   page: number;
   limit: number;
@@ -98,7 +98,7 @@ export class MCPService {
       const mockCompanies: MCPCompany[] = this.generateMockCompanies(params);
       
       const response: MCPSearchResponse = {
-        companies: mockCompanies,
+        entreprises: mockCompanies,
         total: mockCompanies.length,
         page: params.page || 1,
         limit: params.limit || 50,

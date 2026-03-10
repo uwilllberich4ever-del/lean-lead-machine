@@ -51,7 +51,7 @@ export default function CompanyPage() {
 
       // Stage 3: Contacts data (lazy)
       setTimeout(() => {
-        setCompany(prev => ({
+        setCompany((prev: any) => ({
           ...prev,
           website: "https://techsolutions.fr",
           phone: "+33 1 23 45 67 89",

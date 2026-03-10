@@ -39,7 +39,7 @@ export async function rateLimit(
   
   // Pour le MVP, on utilise une IP simple
   // En production, utilisez un identifiant utilisateur ou session
-  const identifier = request.ip || request.headers.get('x-forwarded-for') || 'anonymous';
+  const identifier = request.headers.get('x-forwarded-for') || 'anonymous';
   const key = `rate-limit:${identifier}:${maxRequests}:${windowMs}`;
   
   const now = Date.now();

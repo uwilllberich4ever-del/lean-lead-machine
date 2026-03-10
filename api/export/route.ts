@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
     const startTime = Date.now();
     
     // Générer la clé de cache pour la recherche
-    const searchCacheKey = await cacheService.generateSearchCacheKey({
+    const searchCacheKey = cacheService.generateSearchKey({
       ...filters,
       limit: 500, // Maximum pour export
       page: 1
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
 
     // Vérifier le cache pour les données
     let companies = [];
-    const cachedSearch = await cacheService.get(searchCacheKey);
+    const cachedSearch = await cacheService.get<{ entreprises: any[], total: number }>(searchCacheKey);
     
     if (cachedSearch?.entreprises) {
       console.log('📦 Utilisation données depuis cache');
@@ -173,7 +173,7 @@ export async function POST(request: NextRequest) {
         
         companiesWithDetails.push(companyDetails);
       } catch (error) {
-        console.warn(`⚠️ Impossible de récupérer les détails pour ${company.siren}:`, error.message);
+        console.warn(`⚠️ Impossible de récupérer les détails pour ${company.siren}:`, error instanceof Error ? error.message : String(error));
         // Utiliser les données de base si les détails échouent
         companiesWithDetails.push(company);
       }
@@ -181,11 +181,11 @@ export async function POST(request: NextRequest) {
 
     // Étape 3: Générer le CSV
     const csvGenerationStart = Date.now();
-    const exportResult = await csvService.generateCSV(companiesWithDetails, exportConfig);
+    const exportResult = await csvService.generateCSV(companiesWithDetails);
     const csvGenerationTime = Date.now() - csvGenerationStart;
 
     // Étape 4: Générer le nom de fichier
-    const filename = csvService.generateFilename('entreprises_export');
+    const filename = csvService.getFilename(filters);
     const totalTime = Date.now() - startTime;
 
     console.log(`✅ Export généré: ${filename} (${companies.length} lignes, ${totalTime}ms)`);
@@ -194,7 +194,7 @@ export async function POST(request: NextRequest) {
     const headers = new Headers();
     headers.set('Content-Type', 'text/csv; charset=utf-8');
     headers.set('Content-Disposition', `attachment; filename="${filename}"`);
-    headers.set('Content-Length', exportResult.buffer.length.toString());
+    headers.set('Content-Length', Buffer.byteLength(exportResult, 'utf8').toString());
     headers.set('X-Export-Metadata', JSON.stringify({
       rowCount: companies.length,
       generationTime: csvGenerationTime,
@@ -209,7 +209,7 @@ export async function POST(request: NextRequest) {
     headers.set('Pragma', 'no-cache');
     headers.set('Expires', '0');
 
-    return new NextResponse(exportResult.buffer, {
+    return new NextResponse(exportResult, {
       status: 200,
       headers
     });
@@ -304,13 +304,13 @@ export async function HEAD(request: NextRequest) {
     }
 
     // Estimation basée sur des recherches similaires
-    const cacheKey = await cacheService.generateSearchCacheKey({
+    const cacheKey = cacheService.generateSearchKey({
       ...filters,
       limit: 500,
       page: 1
     });
 
-    const cachedData = await cacheService.get(cacheKey);
+    const cachedData = await cacheService.get<{ entreprises: any[], total: number }>(cacheKey);
     let estimatedRows = 0;
 
     if (cachedData?.entreprises) {

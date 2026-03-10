@@ -90,21 +90,24 @@ export async function GET(request: NextRequest) {
     }
 
     // Générer la clé de cache
-    const cacheKey = await cacheService.generateSearchCacheKey(validatedFilters);
+    const cacheKey = cacheService.generateSearchKey(validatedFilters);
     
     // Vérifier le cache
-    const cachedData = await cacheService.get(cacheKey);
+    const cachedData = await cacheService.get<{ success: boolean; data: any }>(cacheKey);
     if (cachedData) {
-      return NextResponse.json({
-        success: true,
-        data: cachedData.data,
-        pagination: cachedData.pagination,
-        metadata: {
-          ...cachedData.metadata,
-          cacheHit: true,
-          cacheTtl: await cacheService.getTTL(cacheKey)
+      const cacheTtl = await cacheService.getTTL(cacheKey);
+      const response = {
+        ...cachedData,
+        data: {
+          ...cachedData.data,
+          metadata: {
+            ...cachedData.data.metadata,
+            cacheHit: true,
+            cacheTtl
+          }
         }
-      });
+      };
+      return NextResponse.json(response);
     }
 
     console.log(`🔍 Recherche MCP: ${JSON.stringify(validatedFilters)}`);
@@ -136,7 +139,7 @@ export async function GET(request: NextRequest) {
     };
 
     // Mettre en cache (24h)
-    await cacheService.set(cacheKey, responseData.data, 86400);
+    await cacheService.set(cacheKey, responseData, 86400);
 
     // Headers de cache pour le client
     const headers = new Headers();
@@ -270,21 +273,24 @@ export async function POST(request: NextRequest) {
     }
 
     // Générer la clé de cache
-    const cacheKey = await cacheService.generateSearchCacheKey(validatedFilters);
+    const cacheKey = cacheService.generateSearchKey(validatedFilters);
     
     // Vérifier le cache
-    const cachedData = await cacheService.get(cacheKey);
+    const cachedData = await cacheService.get<{ success: boolean; data: any }>(cacheKey);
     if (cachedData) {
-      return NextResponse.json({
-        success: true,
-        data: cachedData.data,
-        pagination: cachedData.pagination,
-        metadata: {
-          ...cachedData.metadata,
-          cacheHit: true,
-          cacheTtl: await cacheService.getTTL(cacheKey)
+      const cacheTtl = await cacheService.getTTL(cacheKey);
+      const response = {
+        ...cachedData,
+        data: {
+          ...cachedData.data,
+          metadata: {
+            ...cachedData.data.metadata,
+            cacheHit: true,
+            cacheTtl
+          }
         }
-      });
+      };
+      return NextResponse.json(response);
     }
 
     console.log(`🔍 Recherche MCP (POST): ${JSON.stringify(validatedFilters)}`);
@@ -316,7 +322,7 @@ export async function POST(request: NextRequest) {
     };
 
     // Mettre en cache (24h)
-    await cacheService.set(cacheKey, responseData.data, 86400);
+    await cacheService.set(cacheKey, responseData, 86400);
 
     // Headers de cache pour le client
     const headers = new Headers();

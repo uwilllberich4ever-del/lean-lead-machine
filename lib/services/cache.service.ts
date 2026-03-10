@@ -65,6 +65,16 @@ export class CacheService {
     return true;
   }
 
+  async getTTL(key: string): Promise<number> {
+    const entry = this.cache.get(key);
+    if (!entry) return 0;
+
+    const now = Date.now();
+    const elapsed = now - entry.timestamp;
+    const remaining = entry.ttl - elapsed;
+    return Math.max(0, Math.floor(remaining / 1000)); // Retourne en secondes
+  }
+
   // Méthodes utilitaires pour les recherches MCP
   generateSearchKey(params: Record<string, any>): string {
     const sorted = Object.keys(params)
