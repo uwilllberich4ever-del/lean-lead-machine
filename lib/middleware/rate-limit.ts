@@ -2,7 +2,7 @@
  * Middleware de rate limiting pour Lean Lead Machine MVP
  */
 
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 interface RateLimitData {
   count: number;
@@ -17,14 +17,33 @@ const rateLimitCache = new Map<string, RateLimitData>();
 const RATE_LIMIT_WINDOW_MS = parseInt(process.env.NEXT_PUBLIC_RATE_LIMIT_WINDOW_MS || '900000', 10); // 15 min par défaut
 const RATE_LIMIT_MAX_REQUESTS = parseInt(process.env.NEXT_PUBLIC_RATE_LIMIT_MAX_REQUESTS || '100', 10);
 
-export async function rateLimit(request: NextRequest): Promise<{ allowed: boolean; remaining: number; resetTime: number }> {
+interface RateLimitOptions {
+  max?: number;
+  windowMs?: number;
+}
+
+interface RateLimitResult {
+  limited: boolean;
+  response?: NextResponse;
+  remaining?: number;
+  resetTime?: number;
+}
+
+export async function rateLimit(
+  request: NextRequest,
+  options?: RateLimitOptions
+): Promise<RateLimitResult> {
+  // Utiliser les options ou les valeurs par défaut
+  const maxRequests = options?.max || RATE_LIMIT_MAX_REQUESTS;
+  const windowMs = options?.windowMs || RATE_LIMIT_WINDOW_MS;
+  
   // Pour le MVP, on utilise une IP simple
   // En production, utilisez un identifiant utilisateur ou session
   const identifier = request.ip || request.headers.get('x-forwarded-for') || 'anonymous';
-  const key = `rate-limit:${identifier}`;
+  const key = `rate-limit:${identifier}:${maxRequests}:${windowMs}`;
   
   const now = Date.now();
-  const windowStart = Math.floor(now / RATE_LIMIT_WINDOW_MS) * RATE_LIMIT_WINDOW_MS;
+  const windowStart = Math.floor(now / windowMs) * windowMs;
 
   let data = rateLimitCache.get(key);
   
@@ -42,19 +61,47 @@ export async function rateLimit(request: NextRequest): Promise<{ allowed: boolea
   rateLimitCache.set(key, data);
 
   // Calculer les métriques
-  const remaining = Math.max(0, RATE_LIMIT_MAX_REQUESTS - data.count);
-  const resetTime = data.windowStart + RATE_LIMIT_WINDOW_MS;
+  const remaining = Math.max(0, maxRequests - data.count);
+  const resetTime = data.windowStart + windowMs;
   
   // Vérifier si la limite est dépassée
-  const allowed = data.count <= RATE_LIMIT_MAX_REQUESTS;
+  const limited = data.count > maxRequests;
 
   // Nettoyer le cache périodiquement (simplifié pour MVP)
   if (Math.random() < 0.01) { // 1% chance de nettoyage à chaque requête
     cleanupRateLimitCache();
   }
 
+  if (limited) {
+    const retryAfter = Math.ceil((resetTime - now) / 1000);
+    const response = NextResponse.json(
+      {
+        success: false,
+        error: 'RATE_LIMIT_EXCEEDED',
+        message: `Trop de requêtes. Réessayez dans ${retryAfter} secondes.`,
+        retryAfter
+      },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': retryAfter.toString(),
+          'X-RateLimit-Limit': maxRequests.toString(),
+          'X-RateLimit-Remaining': '0',
+          'X-RateLimit-Reset': Math.ceil(resetTime / 1000).toString()
+        }
+      }
+    );
+    
+    return {
+      limited: true,
+      response,
+      remaining: 0,
+      resetTime
+    };
+  }
+
   return {
-    allowed,
+    limited: false,
     remaining,
     resetTime
   };
