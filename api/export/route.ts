@@ -61,12 +61,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { filters, format = {} } = validationResult.data;
+    const { filters, format } = validationResult.data;
     const exportConfig = {
-      separator: format.separator || ';',
-      encoding: format.encoding || 'utf8',
-      includeHeaders: format.includeHeaders !== false,
-      includeBOM: format.includeBOM !== false,
+      separator: format?.separator || ';',
+      encoding: format?.encoding || 'utf8',
+      includeHeaders: format?.includeHeaders !== false,
+      includeBOM: format?.includeBOM !== false,
       maxRows: 500 // Limite MVP
     };
 
