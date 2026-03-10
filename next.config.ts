@@ -6,12 +6,27 @@ const nextConfig: NextConfig = {
   
   // Image optimization
   images: {
-    domains: [
-      'lh3.googleusercontent.com',
-      'maps.googleapis.com',
-      'logo.clearbit.com',
-      'via.placeholder.com',
-      'images.unsplash.com'
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'maps.googleapis.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'logo.clearbit.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'via.placeholder.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
     ],
     formats: ['image/avif', 'image/webp'],
   },
@@ -81,6 +96,9 @@ const nextConfig: NextConfig = {
     }
     return config;
   },
+
+  // Turbopack configuration (Next.js 16+)
+  turbopack: {},
 
   // Experimental features
   experimental: {
