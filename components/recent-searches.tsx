@@ -52,26 +52,26 @@ const recentSearches = [
 
 export default function RecentSearches() {
   return (
-    <div className="bg-white rounded-xl shadow-lg p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-bold text-gray-900">Recherches récentes</h2>
-        <History className="w-5 h-5 text-gray-400" />
+    <div className="bg-white rounded-xl shadow-lg p-5">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-bold text-gray-900">Recherches récentes</h2>
+        <History className="w-4 h-4 text-gray-400" />
       </div>
       
-      <div className="space-y-4">
+      <div className="space-y-3">
         {recentSearches.map((search) => (
           <div
             key={search.id}
-            className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer"
+            className="border border-gray-200 rounded-lg p-3 hover:bg-surface-alt transition-colors cursor-pointer"
           >
             <div className="flex justify-between items-start mb-2">
-              <h3 className="font-medium text-gray-900">{search.query}</h3>
-              <span className="text-sm text-gray-500">
+              <h3 className="text-sm font-medium text-gray-900">{search.query}</h3>
+              <span className="text-xs text-gray-500">
                 {format(search.date, "dd MMM HH:mm", { locale: fr })}
               </span>
             </div>
             
-            <div className="flex items-center text-sm text-gray-600 mb-3">
+            <div className="flex items-center text-sm text-gray-600 mb-2">
               <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
                 {search.results} résultats
               </span>
@@ -98,14 +98,14 @@ export default function RecentSearches() {
               )}
             </div>
             
-            <button className="mt-3 text-sm text-blue-600 hover:text-blue-800 font-medium">
+            <button className="mt-2 text-sm text-blue-600 hover:text-blue-800 font-medium">
               Relancer cette recherche →
             </button>
           </div>
         ))}
       </div>
       
-      <button className="w-full mt-6 border border-gray-300 text-gray-700 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
+      <button className="w-full mt-4 border border-gray-300 text-gray-700 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
         Voir tout l'historique
       </button>
     </div>

@@ -89,9 +89,9 @@ export default function SearchDashboard() {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-lg p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">Recherche avancée</h2>
+    <div className="bg-white rounded-xl shadow-lg p-5">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-bold text-gray-900">Recherche avancée</h2>
         <button
           onClick={() => setShowAdvanced(!showAdvanced)}
           className="flex items-center text-blue-600 hover:text-blue-800"

@@ -25,33 +25,33 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-lg p-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">Comment trouver vos prochains clients en 3 étapes</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="bg-white rounded-xl shadow-lg p-5">
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Comment trouver vos prochains clients en 3 étapes</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="text-center">
-            <div className="w-12 h-12 bg-primary-light text-primary rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-4">
+            <div className="w-10 h-10 bg-primary-light text-primary rounded-full flex items-center justify-center text-lg font-bold mx-auto mb-3">
               1
             </div>
-            <h3 className="font-semibold text-gray-900 mb-2">Définissez votre cible</h3>
-            <p className="text-gray-600">
+            <h3 className="text-sm font-semibold text-gray-900 mb-2">Définissez votre cible</h3>
+            <p className="text-sm text-gray-600">
               Utilisez des filtres précis : code postal, rayon (1-100km), secteur d'activité (NAF) et taille d'entreprise.
             </p>
           </div>
           <div className="text-center">
-            <div className="w-12 h-12 bg-primary-light text-primary rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-4">
+            <div className="w-10 h-10 bg-primary-light text-primary rounded-full flex items-center justify-center text-lg font-bold mx-auto mb-3">
               2
             </div>
-            <h3 className="font-semibold text-gray-900 mb-2">Explorez les fiches détaillées</h3>
-            <p className="text-gray-600">
+            <h3 className="text-sm font-semibold text-gray-900 mb-2">Explorez les fiches détaillées</h3>
+            <p className="text-sm text-gray-600">
               Consultez les données légales à jour, la localisation sur carte, et les contacts vérifiés pour chaque entreprise.
             </p>
           </div>
           <div className="text-center">
-            <div className="w-12 h-12 bg-primary-light text-primary rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-4">
+            <div className="w-10 h-10 bg-primary-light text-primary rounded-full flex items-center justify-center text-lg font-bold mx-auto mb-3">
               3
             </div>
-            <h3 className="font-semibold text-gray-900 mb-2">Exportez et prospectez</h3>
-            <p className="text-gray-600">
+            <h3 className="text-sm font-semibold text-gray-900 mb-2">Exportez et prospectez</h3>
+            <p className="text-sm text-gray-600">
               Téléchargez votre liste en CSV (jusqu'à 500 entreprises) ou importez directement dans votre CRM.
             </p>
           </div>
