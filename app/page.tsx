@@ -4,7 +4,7 @@ import RecentSearches from "@/components/recent-searches";
 
 export default function Home() {
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div className="text-center">
         <h1 className="text-4xl font-bold text-gray-900 mb-4">
           Prospection B2B : <span className="text-primary">Trouvez des leads qualifiés en 45 secondes</span>
@@ -19,7 +19,7 @@ export default function Home() {
         <div className="lg:col-span-3">
           <SearchDashboard />
         </div>
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-4">
           <StatsOverview />
           <RecentSearches />
         </div>
@@ -58,21 +58,14 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="bg-primary rounded-2xl p-8 mx-4 shadow-lg">
-        <div className="flex flex-col md:flex-row items-center justify-between">
-          <div>
-            <h2 className="text-white text-2xl font-bold mb-2">🚀 Testez gratuitement pendant 14 jours</h2>
-            <p className="text-blue-100 mt-2">
-              Accédez à toutes les fonctionnalités premium sans carte de crédit. 
-              <br />
-              <span className="font-semibold">Seulement 29€/mois ensuite</span> – moins cher qu'un café par jour.
-            </p>
-          </div>
-          <button className="mt-4 md:mt-0 bg-white text-primary font-semibold px-6 py-3 rounded-lg hover:bg-gray-100 shadow-md">
-            Commencer gratuitement →
-          </button>
-        </div>
-      </div>
+      <section className="bg-primary rounded-2xl p-10 mx-4 my-8 text-center">
+        <h2 className="text-white text-2xl font-bold mb-2">🚀 Testez gratuitement pendant 14 jours</h2>
+        <p className="text-white opacity-90 mb-1">Accédez à toutes les fonctionnalités premium sans carte de crédit.</p>
+        <p className="text-white opacity-90 mb-6">Seulement 29€/mois ensuite – moins cher qu'un café par jour.</p>
+        <a href="/register" className="inline-block bg-white text-primary font-semibold px-8 py-3 rounded-lg hover:bg-gray-100 transition-colors">
+          Commencer gratuitement →
+        </a>
+      </section>
     </div>
   );
 }
