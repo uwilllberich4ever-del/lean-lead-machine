@@ -96,6 +96,30 @@ export default function DashboardPage() {
     });
   };
 
+  const handleDownloadExport = async (exportId: string, filename: string) => {
+    try {
+      // Pour l'instant, on simule un téléchargement
+      // Dans une version future, on pourrait appeler l'API pour récupérer le fichier
+      const response = await fetch(`/api/export/csv?siren=${exportId}`);
+      if (!response.ok) {
+        throw new Error('Erreur lors du téléchargement');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Erreur lors du téléchargement:', error);
+      alert('Impossible de télécharger le fichier. Veuillez réessayer.');
+    }
+  };
+
   const formatSearchParams = (params: any) => {
     if (!params) return 'Recherche';
     
@@ -270,7 +294,12 @@ export default function DashboardPage() {
                             </div>
                             <div>
                               <Link
-                                href="/"
+                                href={`/?${new URLSearchParams({
+                                  postalCode: search.search_params?.codePostal || '',
+                                  nafCode: search.search_params?.codeNaf || '',
+                                  employeeRange: search.search_params?.trancheEffectif || '',
+                                  radius: search.search_params?.rayonKm || '10',
+                                })}`}
                                 className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-full text-primary bg-primary-light hover:bg-primary/20"
                               >
                                 Refaire
@@ -340,9 +369,8 @@ export default function DashboardPage() {
                             </div>
                             <div>
                               <button
-                                disabled
-                                title="Bientôt disponible"
-                                className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-full text-gray-400 bg-gray-100 cursor-not-allowed"
+                                onClick={() => handleDownloadExport(exportItem.id, exportItem.filename)}
+                                className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-full text-success bg-success-light hover:bg-success/20"
                               >
                                 <Download className="h-3 w-3 mr-1" />
                                 Télécharger
@@ -404,23 +432,22 @@ export default function DashboardPage() {
                 </div>
               </Link>
 
-              <button
-                disabled
-                title="Bientôt disponible"
-                className="bg-white overflow-hidden shadow rounded-lg p-6 hover:shadow-md transition-shadow text-left cursor-not-allowed"
+              <Link
+                href="/"
+                className="bg-white overflow-hidden shadow rounded-lg p-6 hover:shadow-md transition-shadow"
               >
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
-                    <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center">
-                      <Download className="h-5 w-5 text-gray-400" />
+                    <div className="h-10 w-10 rounded-full bg-success-light flex items-center justify-center">
+                      <Download className="h-5 w-5 text-success" />
                     </div>
                   </div>
                   <div className="ml-4">
-                    <h4 className="text-sm font-medium text-gray-400">Exporter</h4>
-                    <p className="text-xs text-gray-400">Bientôt disponible</p>
+                    <h4 className="text-sm font-medium text-gray-900">Exporter</h4>
+                    <p className="text-xs text-gray-500">Télécharger en CSV</p>
                   </div>
                 </div>
-              </button>
+              </Link>
 
               <Link
                 href="/help"

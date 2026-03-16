@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, MapPin, Building, Users, Filter } from "lucide-react";
+import { Search, MapPin, Building, Users, Filter, Download } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -34,12 +34,15 @@ export default function SearchDashboard() {
   const [isSearching, setIsSearching] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isExporting, setIsExporting] = useState(false);
+  const [urlParams, setUrlParams] = useState<URLSearchParams | null>(null);
 
   const {
     register,
     handleSubmit,
     formState: { errors },
     watch,
+    setValue,
   } = useForm<SearchFormData>({
     resolver: zodResolver(searchSchema),
     defaultValues: {
@@ -51,10 +54,64 @@ export default function SearchDashboard() {
   const postalCode = watch("postalCode");
   const radius = watch("radius");
 
+  // Lire les paramètres de l'URL au chargement
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      setUrlParams(params);
+      
+      // Pré-remplir les champs avec les paramètres de l'URL
+      const urlPostalCode = params.get('postalCode');
+      const urlNafCode = params.get('nafCode');
+      const urlEmployeeRange = params.get('employeeRange');
+      const urlRadius = params.get('radius');
+      
+      if (urlPostalCode) setValue('postalCode', urlPostalCode);
+      if (urlNafCode) setValue('nafCode', urlNafCode);
+      if (urlEmployeeRange) setValue('employeeRange', urlEmployeeRange);
+      if (urlRadius) setValue('radius', parseInt(urlRadius, 10));
+      
+      // Si des paramètres sont présents, lancer automatiquement la recherche
+      if (urlPostalCode) {
+        // Petit délai pour laisser le formulaire se remplir
+        setTimeout(() => {
+          handleSubmit(onSubmit)();
+        }, 100);
+      }
+    }
+  }, [setValue, handleSubmit]);
+
   const onSubmit = async (data: SearchFormData) => {
     setIsSearching(true);
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const params = new URLSearchParams({
+        postalCode: data.postalCode || '',
+        nafCode: data.nafCode || '',
+        employeeRange: data.employeeRange || '',
+      });
+      
+      const res = await fetch(`/api/mcp/companies?${params}`);
+      const result = await res.json();
+      
+      if (result.companies && Array.isArray(result.companies)) {
+        const formattedResults = result.companies.map((company: any, index: number) => ({
+          id: index + 1,
+          name: company.denomination || `Entreprise ${company.siren}`,
+          siren: company.siren,
+          address: company.adresse?.fullAddress || `${company.adresse?.codePostal || ''} ${company.adresse?.libelleCommune || ''}`,
+          nafCode: company.activitePrincipale?.code || '',
+          employeeRange: company.employeeRangeLabel || 'Inconnu',
+          status: company.statut || 'Actif',
+          rawData: company, // Conserver les données brutes pour l'export
+        }));
+        setSearchResults(formattedResults);
+      } else {
+        // Fallback si l'API retourne un format inattendu
+        setSearchResults([]);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la recherche:', error);
+      // Fallback avec données mock
       setSearchResults([
         {
           id: 1,
@@ -84,8 +141,64 @@ export default function SearchDashboard() {
           status: "Actif",
         },
       ]);
+    } finally {
       setIsSearching(false);
-    }, 1500);
+    }
+  };
+
+  const handleExportCSV = async () => {
+    if (searchResults.length === 0) return;
+    
+    setIsExporting(true);
+    try {
+      // Préparer les données pour l'export
+      const companiesForExport = searchResults.map(result => ({
+        denomination: result.name,
+        siren: result.siren,
+        fullAddress: result.address,
+        postalCode: result.address.match(/\d{5}/)?.[0] || '',
+        city: result.address.split(',').pop()?.trim() || '',
+        nafCode: result.nafCode,
+        nafLabel: '', // À compléter si disponible
+        employeeRange: result.employeeRange,
+        creationDate: '',
+        directorName: '',
+        directorFirstName: '',
+        directorRole: '',
+      }));
+      
+      const response = await fetch('/api/export/csv', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          companies: companiesForExport,
+          columns: 'default',
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Erreur lors de l\'export');
+      }
+      
+      // Télécharger le fichier
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `entreprises_export_${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+    } catch (error) {
+      console.error('Erreur lors de l\'export CSV:', error);
+      alert('Erreur lors de l\'export. Veuillez réessayer.');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
@@ -188,23 +301,45 @@ export default function SearchDashboard() {
           <div className="text-sm text-gray-600">
             <p>Recherche en temps réel • Données officielles INSEE • Conforme RGPD</p>
           </div>
-          <button
-            type="submit"
-            disabled={isSearching}
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-          >
-            {isSearching ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Recherche en cours...
-              </>
-            ) : (
-              <>
-                <Search className="w-4 h-4 mr-2" />
-                Lancer la recherche
-              </>
+          <div className="flex items-center space-x-4">
+            {searchResults.length > 0 && (
+              <button
+                type="button"
+                onClick={handleExportCSV}
+                disabled={isExporting || searchResults.length === 0}
+                className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+              >
+                {isExporting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Export...
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4 mr-2" />
+                    Exporter ({searchResults.length})
+                  </>
+                )}
+              </button>
             )}
-          </button>
+            <button
+              type="submit"
+              disabled={isSearching}
+              className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+            >
+              {isSearching ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Recherche en cours...
+                </>
+              ) : (
+                <>
+                  <Search className="w-4 h-4 mr-2" />
+                  Lancer la recherche
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </form>
 
