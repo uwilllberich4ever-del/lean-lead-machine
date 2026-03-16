@@ -3,7 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { AuthProvider } from "@/components/auth-context";
-import AuthButtons from "@/components/auth-buttons";
+import Navbar from "@/components/navbar";
 import Link from "next/link";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -20,36 +20,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" className="h-full">
-      <body className={`${inter.className} h-full bg-gray-50`}>
+      <body className={`${inter.className} h-full bg-surface`}>
         <Providers>
           <AuthProvider>
             <div className="min-h-screen flex flex-col">
-              <header className="bg-white shadow-sm border-b">
-                <div className="container mx-auto px-4 py-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Link href="/" className="flex items-center space-x-2">
-                        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                          <span className="text-white text-sm font-bold">✓</span>
-                        </div>
-                        <div>
-                          <h1 className="text-xl font-bold text-gray-900">Lean Lead Machine</h1>
-                          <p className="text-xs text-green-600 font-medium">Prospection B2B Intelligente</p>
-                        </div>
-                      </Link>
-                    </div>
-                    
-                    <nav className="hidden md:flex space-x-6">
-                      <Link href="/dashboard" className="text-gray-600 hover:text-gray-900">Dashboard</Link>
-                      <Link href="/" className="text-gray-600 hover:text-gray-900">Recherche</Link>
-                      <Link href="/credits" className="text-gray-600 hover:text-gray-900">Crédits</Link>
-                      <Link href="/profile" className="text-gray-600 hover:text-gray-900">Profil</Link>
-                    </nav>
-                    
-                    <AuthButtons />
-                  </div>
-                </div>
-              </header>
+              <Navbar />
               
               <main className="flex-1 container mx-auto px-4 py-6">
                 {children}
@@ -66,6 +41,13 @@ export default function RootLayout({
                   </div>
                 </div>
               </footer>
+
+              {/* Bouton IA flottant */}
+              <div className="fixed bottom-6 right-6 z-50">
+                <button className="bg-teal text-white rounded-full p-4 shadow-lg hover:shadow-xl transition-shadow">
+                  🤖 IA
+                </button>
+              </div>
             </div>
           </AuthProvider>
         </Providers>

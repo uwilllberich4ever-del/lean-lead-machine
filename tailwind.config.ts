@@ -11,21 +11,10 @@ const config: Config = {
       colors: {
         background: 'var(--background)',
         foreground: 'var(--foreground)',
-        primary: {
-          DEFAULT: '#2E5BFF',
-          dark: '#1A44E8',
-          light: '#EEF2FF',
-          50: '#EEF2FF',
-          100: '#E0E7FF',
-          200: '#C7D2FE',
-          300: '#A5B4FC',
-          400: '#818CF8',
-          500: '#6366F1',
-          600: '#2E5BFF',
-          700: '#1A44E8',
-          800: '#1238C7',
-          900: '#0D2896',
-        },
+        primary: '#0D46A8', // bleu Pappers
+        navy: '#132D4D',
+        teal: '#3DB39E',
+        surface: '#F8FAFC', // off-white
         accent: {
           DEFAULT: '#6366F1',
           light: '#EDE9FE',
@@ -46,12 +35,6 @@ const config: Config = {
           light: '#FEF3C7',
           dark: '#D97706',
         },
-        surface: {
-          DEFAULT: '#F8FAFC',
-          alt: '#F1F5F9',
-          dark: '#0F172A',
-          'dark-alt': '#1E293B',
-        },
         border: {
           DEFAULT: '#E2E8F0',
           strong: '#CBD5E1',
@@ -59,7 +42,7 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ['var(--font-geist-sans)', 'system-ui', 'sans-serif'],
+        sans: ['Museo', 'var(--font-geist-sans)', 'system-ui', 'sans-serif'], // Museo si dispo, sinon fallback
         mono: ['var(--font-geist-mono)', 'monospace'],
       },
       animation: {
