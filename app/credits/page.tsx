@@ -2,6 +2,7 @@
 
 import { CreditCard, Zap, Shield, RefreshCw, CheckCircle, AlertTriangle } from "lucide-react";
 import { useState } from "react";
+import { useToast } from "@/components/toast";
 
 const creditPacks = [
   { id: 1, name: "Starter", credits: 100, price: 9, popular: false },
@@ -30,6 +31,7 @@ export default function CreditsPage() {
   const [currentCredits, setCurrentCredits] = useState(247);
   const [selectedPack, setSelectedPack] = useState(2);
   const [isProcessing, setIsProcessing] = useState(false);
+  const { addToast } = useToast();
 
   const handlePurchase = async (packId: number) => {
     setIsProcessing(true);
@@ -40,7 +42,7 @@ export default function CreditsPage() {
     setTimeout(() => {
       setCurrentCredits(prev => prev + pack.credits);
       setIsProcessing(false);
-      alert(`Achat réussi ! ${pack.credits} crédits ont été ajoutés à votre compte.`);
+      addToast(`Achat réussi ! ${pack.credits} crédits ont été ajoutés à votre compte.`, 'success');
     }, 1500);
   };
 
