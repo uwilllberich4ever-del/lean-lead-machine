@@ -146,6 +146,20 @@ export async function getUserSearches(userId: string, limit = 10) {
   return data as UserSearch[];
 }
 
+export async function countUserSearches(userId: string) {
+  const { count, error } = await supabase
+    .from('user_searches')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId);
+  
+  if (error) {
+    console.error('Erreur lors du comptage des recherches:', error);
+    return 0;
+  }
+  
+  return count || 0;
+}
+
 export async function logExport(userId: string, filename: string, rowCount: number) {
   const { data, error } = await supabase
     .from('user_exports')

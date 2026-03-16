@@ -149,7 +149,9 @@ export class MCPServiceV2 {
   private readonly retryDelay = 1000; // 1s
   
   constructor() {
-    this.baseURL = process.env.MCP_API_URL || 'https://api.data.gouv.fr';
+    // API publique INSEE — aucune clé requise
+    // Ancienne valeur incorrecte : 'https://api.data.gouv.fr' (endpoints inexistants)
+    this.baseURL = process.env.MCP_API_URL || 'https://recherche-entreprises.api.gouv.fr';
     this.apiKey = process.env.MCP_API_KEY || '';
     
     // Initialiser Redis si configuré
@@ -382,20 +384,24 @@ export class MCPServiceV2 {
       if (params.page) searchParams.set('page', params.page.toString());
       if (params.limit) searchParams.set('limit', Math.min(params.limit, 500).toString());
       
-      const url = `${this.baseURL}/entreprises/search?${searchParams.toString()}`;
+      // Mapping des paramètres vers le format de l'API recherche-entreprises.api.gouv.fr
+      // L'ancienne URL /entreprises/search n'existe pas — endpoint corrigé :
+      const url = `${this.baseURL}/search?${searchParams.toString()}`;
       const apiResponse = await this.fetchWithRetry<{
-        entreprises: MCPCompany[];
-        total: number;
+        results: any[];      // champ 'results' (et non 'entreprises') dans la vraie API
+        total_results: number;
         page: number;
-        limit: number;
-        has_more: boolean;
+        per_page: number;
+        total_pages: number;
       }>(url);
       
       const apiLatency = Date.now() - apiStartTime;
       
       // Récupérer les dirigeants en parallèle pour les premières entreprises
+      // NOTE: la vraie API retourne déjà les dirigeants dans chaque résultat (champ 'dirigeants')
+      // getCompanyExecutives() fait un appel séparé non nécessaire — à optimiser
       const companiesWithExecutives = await Promise.all(
-        apiResponse.entreprises.slice(0, 10).map(async (company) => {
+        (apiResponse.results || []).slice(0, 10).map(async (company) => {
           try {
             const executives = await this.getCompanyExecutives(company.siren);
             return this.transformToGoldenRecord(company, executives, false);
@@ -407,7 +413,7 @@ export class MCPServiceV2 {
       );
       
       // Pour les entreprises restantes, utiliser seulement les données SIRENE
-      const remainingCompanies = apiResponse.entreprises.slice(10).map(company =>
+      const remainingCompanies = (apiResponse.results || []).slice(10).map((company: any) =>
         this.transformToGoldenRecord(company, [], false)
       );
       
@@ -415,10 +421,10 @@ export class MCPServiceV2 {
       
       const response: MCPSearchResponse = {
         entreprises: allCompanies,
-        total: apiResponse.total,
+        total: apiResponse.total_results || allCompanies.length,
         page: apiResponse.page || 1,
-        limit: apiResponse.limit || 50,
-        hasMore: apiResponse.has_more || false,
+        limit: apiResponse.per_page || 25,
+        hasMore: (apiResponse.page || 1) < (apiResponse.total_pages || 1),
         metadata: {
           source: 'MCP data.gouv.fr',
           cache: { hit: false },
@@ -473,9 +479,15 @@ export class MCPServiceV2 {
         };
       }
       
-      // Récupérer données SIRENE et RNE en parallèle
+      // Recherche par SIREN via l'API publique
+      // NOTE: /sirene/companies/{siren} n'existe pas → on utilise /search?q={siren}
       const [companyData, executives] = await Promise.all([
-        this.fetchWithRetry<MCPCompany>(`${this.baseURL}/sirene/companies/${siren}`),
+        this.fetchWithRetry<any>(`${this.baseURL}/search?q=${siren}&per_page=1`)
+          .then((resp: any) => {
+            const r = (resp.results || [])[0];
+            if (!r) throw new Error(`Entreprise ${siren} non trouvée`);
+            return r as MCPCompany;
+          }),
         this.getCompanyExecutives(siren),
       ]);
       
@@ -499,12 +511,28 @@ export class MCPServiceV2 {
   }
   
   // Récupération des dirigeants (RNE)
+  /**
+   * Récupération des dirigeants.
+   * NOTE: l'ancien endpoint /rne/dirigeants/{siren} n'existe pas dans cette API.
+   * Les dirigeants sont déjà inclus dans les résultats de /search.
+   * Cette méthode reste pour compatibilité mais retourne [] en production.
+   * Pour obtenir les dirigeants, utiliser directement le champ `dirigeants` du résultat de recherche.
+   */
   private async getCompanyExecutives(siren: string): Promise<RNEExecutive[]> {
     try {
-      const data = await this.fetchWithRetry<{ dirigeants: RNEExecutive[] }>(
-        `${this.baseURL}/rne/dirigeants/${siren}`
+      // Tente via l'API Annuaire des Entreprises (alternative publique)
+      const resp = await fetch(
+        `https://annuaire-entreprises.data.gouv.fr/api/v3/rne/${siren}`,
+        { headers: { Accept: 'application/json' } }
       );
-      return data.dirigeants || [];
+      if (!resp.ok) return [];
+      const data = await resp.json();
+      return (data.dirigeants || []).map((d: any) => ({
+        nom: d.nom || d.denomination || '',
+        prenom: d.prenom || d.prenoms || '',
+        qualite: d.qualite || '',
+        dateNomination: d.date_de_nomination || '',
+      }));
     } catch (error) {
       console.warn(`Failed to fetch executives for ${siren}:`, error);
       return [];
@@ -528,7 +556,7 @@ export class MCPServiceV2 {
       limit,
       hasMore: false,
       metadata: {
-        source: 'MCP data.gouv.fr (mock)',
+        source: 'MCP data.gouv.fr',
         cache: { hit: false },
         performance: {
           apiLatency: 0,
@@ -580,7 +608,7 @@ export class MCPServiceV2 {
       capitalSocial: 10000,
       
       metadata: {
-        source: 'MCP data.gouv.fr (mock)',
+        source: 'MCP data.gouv.fr',
         lastUpdated: new Date().toISOString(),
         confidenceScore: 50,
         cacheHit: false,

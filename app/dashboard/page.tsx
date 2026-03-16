@@ -11,11 +11,11 @@ import {
   BarChart3,
   FileText,
   Clock,
-  MapPin
+  HelpCircle
 } from 'lucide-react';
 import { useAuth } from '@/components/auth-context';
 import ProtectedRoute from '@/components/protected-route';
-import { getUserSearches, getUserExports } from '@/lib/supabase';
+import { getUserSearches, getUserExports, countUserSearches } from '@/lib/supabase';
 
 type DashboardStats = {
   totalSearches: number;
@@ -65,7 +65,7 @@ export default function DashboardPage() {
         setRecentExports(exports);
 
         // Calculer les statistiques
-        const totalSearches = searches.length;
+        const totalSearches = await countUserSearches(user.id);
         const totalExports = exports.length;
         const totalCompanies = searches.reduce((sum, search) => sum + search.results_count, 0);
         const lastSearchDate = searches.length > 0 ? searches[0].created_at : null;
@@ -111,10 +111,10 @@ export default function DashboardPage() {
   if (isLoading) {
     return (
       <ProtectedRoute>
-        <div className="min-h-screen bg-gray-50 py-8">
+        <div className="min-h-screen bg-surface py-8">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
               <p className="mt-4 text-gray-600">Chargement du dashboard...</p>
             </div>
           </div>
@@ -125,7 +125,7 @@ export default function DashboardPage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-surface">
         {/* En-tête */}
         <div className="bg-white shadow">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -137,11 +137,16 @@ export default function DashboardPage() {
                 <p className="mt-1 text-sm text-gray-600">
                   Bienvenue sur votre tableau de bord Lean Lead Machine
                 </p>
+                <div className="mt-2">
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-warning-light text-warning border border-warning">
+                    💳 10 crédits disponibles
+                  </span>
+                </div>
               </div>
               <div className="mt-4 sm:mt-0">
                 <Link
                   href="/"
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
                 >
                   <Search className="h-4 w-4 mr-2" />
                   Nouvelle recherche
@@ -158,8 +163,8 @@ export default function DashboardPage() {
               <div className="p-5">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
-                    <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                      <Search className="h-5 w-5 text-blue-600" />
+                    <div className="h-10 w-10 rounded-full bg-primary-light flex items-center justify-center">
+                      <Search className="h-5 w-5 text-primary" />
                     </div>
                   </div>
                   <div className="ml-5">
@@ -174,8 +179,8 @@ export default function DashboardPage() {
               <div className="p-5">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
-                    <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
-                      <Download className="h-5 w-5 text-green-600" />
+                    <div className="h-10 w-10 rounded-full bg-success-light flex items-center justify-center">
+                      <Download className="h-5 w-5 text-success" />
                     </div>
                   </div>
                   <div className="ml-5">
@@ -190,8 +195,8 @@ export default function DashboardPage() {
               <div className="p-5">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
-                    <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center">
-                      <Building className="h-5 w-5 text-purple-600" />
+                    <div className="h-10 w-10 rounded-full bg-accent-light flex items-center justify-center">
+                      <Building className="h-5 w-5 text-accent" />
                     </div>
                   </div>
                   <div className="ml-5">
@@ -206,8 +211,8 @@ export default function DashboardPage() {
               <div className="p-5">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
-                    <div className="h-10 w-10 rounded-full bg-yellow-100 flex items-center justify-center">
-                      <Calendar className="h-5 w-5 text-yellow-600" />
+                    <div className="h-10 w-10 rounded-full bg-warning-light flex items-center justify-center">
+                      <Calendar className="h-5 w-5 text-warning" />
                     </div>
                   </div>
                   <div className="ml-5">
@@ -229,7 +234,7 @@ export default function DashboardPage() {
                   <h3 className="text-lg font-medium text-gray-900">Recherches récentes</h3>
                   <Link
                     href="/searches"
-                    className="text-sm font-medium text-blue-600 hover:text-blue-500"
+                    className="text-sm font-medium text-primary hover:text-primary-dark"
                   >
                     Voir tout
                   </Link>
@@ -266,7 +271,7 @@ export default function DashboardPage() {
                             <div>
                               <Link
                                 href="/"
-                                className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-full text-blue-700 bg-blue-100 hover:bg-blue-200"
+                                className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-full text-primary bg-primary-light hover:bg-primary/20"
                               >
                                 Refaire
                               </Link>
@@ -282,7 +287,7 @@ export default function DashboardPage() {
                     <p className="mt-2 text-sm text-gray-500">Aucune recherche effectuée</p>
                     <Link
                       href="/"
-                      className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                      className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-primary-dark"
                     >
                       <Search className="h-4 w-4 mr-2" />
                       Faire une première recherche
@@ -299,7 +304,7 @@ export default function DashboardPage() {
                   <h3 className="text-lg font-medium text-gray-900">Exports récents</h3>
                   <Link
                     href="/exports"
-                    className="text-sm font-medium text-blue-600 hover:text-blue-500"
+                    className="text-sm font-medium text-primary hover:text-primary-dark"
                   >
                     Voir tout
                   </Link>
@@ -313,8 +318,8 @@ export default function DashboardPage() {
                         <li key={exportItem.id} className="py-4">
                           <div className="flex items-center space-x-4">
                             <div className="flex-shrink-0">
-                              <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
-                                <FileText className="h-4 w-4 text-green-600" />
+                              <div className="h-8 w-8 rounded-full bg-success-light flex items-center justify-center">
+                                <FileText className="h-4 w-4 text-success" />
                               </div>
                             </div>
                             <div className="flex-1 min-w-0">
@@ -335,11 +340,9 @@ export default function DashboardPage() {
                             </div>
                             <div>
                               <button
-                                onClick={() => {
-                                  // Fonction de téléchargement à implémenter
-                                  alert('Téléchargement à implémenter');
-                                }}
-                                className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-full text-green-700 bg-green-100 hover:bg-green-200"
+                                disabled
+                                title="Bientôt disponible"
+                                className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-full text-gray-400 bg-gray-100 cursor-not-allowed"
                               >
                                 <Download className="h-3 w-3 mr-1" />
                                 Télécharger
@@ -373,8 +376,8 @@ export default function DashboardPage() {
               >
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
-                    <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                      <Search className="h-5 w-5 text-blue-600" />
+                    <div className="h-10 w-10 rounded-full bg-primary-light flex items-center justify-center">
+                      <Search className="h-5 w-5 text-primary" />
                     </div>
                   </div>
                   <div className="ml-4">
@@ -390,8 +393,8 @@ export default function DashboardPage() {
               >
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
-                    <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center">
-                      <Users className="h-5 w-5 text-purple-600" />
+                    <div className="h-10 w-10 rounded-full bg-accent-light flex items-center justify-center">
+                      <Users className="h-5 w-5 text-accent" />
                     </div>
                   </div>
                   <div className="ml-4">
@@ -402,21 +405,19 @@ export default function DashboardPage() {
               </Link>
 
               <button
-                onClick={() => {
-                  // Fonction d'export à implémenter
-                  alert('Export à implémenter');
-                }}
-                className="bg-white overflow-hidden shadow rounded-lg p-6 hover:shadow-md transition-shadow text-left"
+                disabled
+                title="Bientôt disponible"
+                className="bg-white overflow-hidden shadow rounded-lg p-6 hover:shadow-md transition-shadow text-left cursor-not-allowed"
               >
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
-                    <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
-                      <Download className="h-5 w-5 text-green-600" />
+                    <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center">
+                      <Download className="h-5 w-5 text-gray-400" />
                     </div>
                   </div>
                   <div className="ml-4">
-                    <h4 className="text-sm font-medium text-gray-900">Exporter</h4>
-                    <p className="text-xs text-gray-500">Télécharger mes données</p>
+                    <h4 className="text-sm font-medium text-gray-400">Exporter</h4>
+                    <p className="text-xs text-gray-400">Bientôt disponible</p>
                   </div>
                 </div>
               </button>
@@ -427,8 +428,8 @@ export default function DashboardPage() {
               >
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
-                    <div className="h-10 w-10 rounded-full bg-yellow-100 flex items-center justify-center">
-                      <MapPin className="h-5 w-5 text-yellow-600" />
+                    <div className="h-10 w-10 rounded-full bg-warning-light flex items-center justify-center">
+                      <HelpCircle className="h-5 w-5 text-warning" />
                     </div>
                   </div>
                   <div className="ml-4">

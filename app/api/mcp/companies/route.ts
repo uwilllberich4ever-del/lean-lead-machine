@@ -1,264 +1,206 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Mock MCP data for demonstration
-const mockCompanies = [
-  {
-    siren: "123456789",
-    denomination: "Tech Solutions SAS",
-    adresse: {
-      codePostal: "75001",
-      libelleCommune: "Paris",
-      numeroVoie: "12",
-      typeVoie: "Rue",
-      libelleVoie: "de la Paix",
-      libelleRegion: "Île-de-France"
-    },
-    activitePrincipale: {
-      code: "62.01Z",
-      libelle: "Programmation informatique"
-    },
-    trancheEffectif: "11",
-    dateCreation: "2018-03-15",
-    categorieJuridique: {
-      libelle: "Société par Actions Simplifiée"
-    },
-    effectif: 15,
-    statut: "Actif"
-  },
-  {
-    siren: "987654321",
-    denomination: "Innovation Digital",
-    adresse: {
-      codePostal: "75008",
-      libelleCommune: "Paris",
-      numeroVoie: "25",
-      typeVoie: "Avenue",
-      libelleVoie: "des Champs-Élysées",
-      libelleRegion: "Île-de-France"
-    },
-    activitePrincipale: {
-      code: "62.02A",
-      libelle: "Conseil en systèmes informatiques"
-    },
-    trancheEffectif: "12",
-    dateCreation: "2019-07-22",
-    categorieJuridique: {
-      libelle: "Société à Responsabilité Limitée"
-    },
-    effectif: 35,
-    statut: "Actif"
-  },
-  {
-    siren: "456789123",
-    denomination: "Data Analytics France",
-    adresse: {
-      codePostal: "75009",
-      libelleCommune: "Paris",
-      numeroVoie: "8",
-      typeVoie: "Boulevard",
-      libelleVoie: "Haussmann",
-      libelleRegion: "Île-de-France"
-    },
-    activitePrincipale: {
-      code: "63.11Z",
-      libelle: "Traitement de données, hébergement et activités connexes"
-    },
-    trancheEffectif: "21",
-    dateCreation: "2020-01-10",
-    categorieJuridique: {
-      libelle: "Société par Actions Simplifiée"
-    },
-    effectif: 75,
-    statut: "Actif"
-  }
-];
+/**
+ * API Route: /api/mcp/companies
+ * Proxy vers l'API Recherche d'Entreprises (data.gouv.fr)
+ * https://recherche-entreprises.api.gouv.fr
+ *
+ * GET  ?postalCode=75001&nafCode=62.01Z&employeeRange=11&siren=123456789
+ * POST { postalCode, radius, nafCode, employeeRange }
+ */
+
+const RECHERCHE_ENTREPRISES_URL = 'https://recherche-entreprises.api.gouv.fr';
 
 const employeeRangeMap: Record<string, string> = {
-  "00": "0 salarié",
-  "01": "1 à 2 salariés",
-  "02": "3 à 5 salariés",
-  "03": "6 à 9 salariés",
-  "11": "10 à 19 salariés",
-  "12": "20 à 49 salariés",
-  "21": "50 à 99 salariés",
-  "22": "100 à 199 salariés",
-  "31": "200 à 249 salariés",
-  "32": "250 à 499 salariés",
-  "41": "500 à 999 salariés",
-  "42": "1000+ salariés"
+  '00': '0 salarié',
+  '01': '1 à 2 salariés',
+  '02': '3 à 5 salariés',
+  '03': '6 à 9 salariés',
+  '11': '10 à 19 salariés',
+  '12': '20 à 49 salariés',
+  '21': '50 à 99 salariés',
+  '22': '100 à 199 salariés',
+  '31': '200 à 249 salariés',
+  '32': '250 à 499 salariés',
+  '41': '500 à 999 salariés',
+  '42': '1000+ salariés',
 };
 
+// ─── Données de fallback si l'API est down ────────────────────────────────────
+const MOCK_FALLBACK = [
+  {
+    siren: '123456789',
+    denomination: 'Tech Solutions SAS (mock)',
+    adresse: { codePostal: '75001', libelleCommune: 'Paris', fullAddress: '12 Rue de la Paix, 75001 Paris' },
+    activitePrincipale: { code: '62.01Z', libelle: 'Programmation informatique' },
+    trancheEffectif: '11',
+    dateCreation: '2018-03-15',
+    statut: 'Actif',
+    effectif: 15,
+  },
+];
+
+/** Transforme un résultat de l'API Recherche d'Entreprises en format interne */
+function mapCompany(r: any) {
+  const siege = r.siege || {};
+  const streetParts = [siege.numero_voie, siege.type_voie, siege.libelle_voie].filter(Boolean);
+  const street = streetParts.join(' ');
+  const fullAddress = [street, `${siege.code_postal || ''} ${siege.libelle_commune || ''}`]
+    .filter(s => s.trim())
+    .join(', ');
+
+  return {
+    siren: r.siren,
+    denomination: r.nom_complet || r.nom_raison_sociale || r.siren,
+    adresse: {
+      codePostal: siege.code_postal || '',
+      libelleCommune: siege.libelle_commune || '',
+      fullAddress,
+    },
+    activitePrincipale: {
+      code: r.activite_principale || siege.activite_principale || '',
+      libelle: '', // non fourni par cette API — voir NAF_LIBELLES dans mcp.service.ts
+    },
+    trancheEffectif: r.tranche_effectif_salarie || siege.tranche_effectif_salarie || '00',
+    employeeRangeLabel: employeeRangeMap[r.tranche_effectif_salarie || '00'] || 'Inconnu',
+    dateCreation: r.date_creation || '',
+    statut: r.etat_administratif === 'A' ? 'Actif' : 'Cessé',
+    effectif: null, // effectif exact non disponible dans cette API
+    dirigeants: (r.dirigeants || []).map((d: any) => ({
+      nom: d.nom || d.denomination || '',
+      prenom: d.prenoms || '',
+      qualite: d.qualite || '',
+    })),
+  };
+}
+
+// ─── GET ──────────────────────────────────────────────────────────────────────
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams;
-    const postalCode = searchParams.get('postalCode');
-    const radius = searchParams.get('radius');
-    const nafCode = searchParams.get('nafCode');
-    const employeeRange = searchParams.get('employeeRange');
-    const siren = searchParams.get('siren');
+    const sp = request.nextUrl.searchParams;
+    const postalCode = sp.get('postalCode');
+    const nafCode = sp.get('nafCode');
+    const employeeRange = sp.get('employeeRange');
+    const siren = sp.get('siren');
 
-    // Rate limiting simulation
-    const rateLimitKey = request.headers.get('x-forwarded-for') || 'unknown';
-    console.log(`[MCP API] Request from ${rateLimitKey} - ${new Date().toISOString()}`);
+    console.log(`[MCP API] GET ${request.nextUrl.search}`);
 
-    // If SIREN is provided, return specific company
+    // ── Lookup par SIREN ──
     if (siren) {
-      const company = mockCompanies.find(c => c.siren === siren);
-      if (!company) {
-        return NextResponse.json(
-          { error: "Entreprise non trouvée" },
-          { status: 404 }
-        );
+      const url = `${RECHERCHE_ENTREPRISES_URL}/search?q=${encodeURIComponent(siren)}&per_page=1`;
+      const apiResp = await fetch(url, { headers: { Accept: 'application/json' }, cache: 'no-store' });
+
+      if (!apiResp.ok) {
+        return NextResponse.json({ error: 'Entreprise non trouvée' }, { status: 404 });
       }
 
-      // Simulate RNE data for executives
-      const rneData = {
-        dirigeants: [
-          {
-            nom: "Dupont",
-            prenom: "Jean",
-            qualite: "Président",
-            dateNomination: "2018-03-15"
-          },
-          {
-            nom: "Martin",
-            prenom: "Marie",
-            qualite: "Directrice Technique",
-            dateNomination: "2019-05-20"
-          }
-        ]
-      };
+      const json = await apiResp.json();
+      const result = (json.results || [])[0];
+      if (!result || result.siren !== siren) {
+        return NextResponse.json({ error: 'Entreprise non trouvée' }, { status: 404 });
+      }
 
+      const company = mapCompany(result);
       return NextResponse.json({
         ...company,
-        dirigeants: rneData.dirigeants,
-        employeeRangeLabel: employeeRangeMap[company.trancheEffectif] || "Inconnu",
-        fullAddress: `${company.adresse.numeroVoie} ${company.adresse.typeVoie} ${company.adresse.libelleVoie}, ${company.adresse.codePostal} ${company.adresse.libelleCommune}`
+        fullAddress: company.adresse.fullAddress,
       });
     }
 
-    // Filter companies based on search criteria
-    let filteredCompanies = [...mockCompanies];
+    // ── Recherche générale ──
+    const qs = new URLSearchParams();
+    qs.set('q', '');
+    if (postalCode) qs.set('code_postal', postalCode);
+    if (nafCode) qs.set('activite_principale', nafCode);
+    if (employeeRange) qs.set('tranche_effectif_salarie', employeeRange);
+    qs.set('per_page', '25');
+    qs.set('page', sp.get('page') || '1');
 
-    if (postalCode) {
-      filteredCompanies = filteredCompanies.filter(
-        company => company.adresse.codePostal.startsWith(postalCode.substring(0, 2))
-      );
+    const apiUrl = `${RECHERCHE_ENTREPRISES_URL}/search?${qs.toString()}`;
+    console.log('[MCP API] Calling:', apiUrl);
+
+    const apiResp = await fetch(apiUrl, { headers: { Accept: 'application/json' }, cache: 'no-store' });
+
+    if (!apiResp.ok) {
+      throw new Error(`API Recherche Entreprises returned ${apiResp.status}`);
     }
 
-    if (nafCode) {
-      filteredCompanies = filteredCompanies.filter(
-        company => company.activitePrincipale.code === nafCode
-      );
-    }
-
-    if (employeeRange) {
-      filteredCompanies = filteredCompanies.filter(
-        company => company.trancheEffectif === employeeRange
-      );
-    }
-
-    // Limit to 500 results as per MVP requirements
-    const limitedResults = filteredCompanies.slice(0, 500);
+    const json = await apiResp.json();
+    const companies = (json.results || []).map(mapCompany);
 
     const response = {
-      companies: limitedResults.map(company => ({
-        siren: company.siren,
-        denomination: company.denomination,
-        adresse: {
-          codePostal: company.adresse.codePostal,
-          libelleCommune: company.adresse.libelleCommune,
-          fullAddress: `${company.adresse.numeroVoie} ${company.adresse.typeVoie} ${company.adresse.libelleVoie}, ${company.adresse.codePostal} ${company.adresse.libelleCommune}`
-        },
-        activitePrincipale: company.activitePrincipale,
-        trancheEffectif: company.trancheEffectif,
-        employeeRangeLabel: employeeRangeMap[company.trancheEffectif] || "Inconnu",
-        dateCreation: company.dateCreation,
-        statut: company.statut,
-        effectif: company.effectif
-      })),
+      companies,
       metadata: {
-        total: limitedResults.length,
-        limit: 500,
-        hasMore: filteredCompanies.length > 500,
+        total: json.total_results || companies.length,
+        page: json.page || 1,
+        totalPages: json.total_pages || 1,
+        perPage: json.per_page || 25,
+        hasMore: (json.page || 1) < (json.total_pages || 1),
         cache: {
-          source: "MCP data.gouv.fr",
-          freshness: "24h",
-          nextUpdate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-        }
-      }
+          source: 'recherche-entreprises.api.gouv.fr',
+          freshness: '24h',
+          nextUpdate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        },
+      },
     };
 
-    // Add cache headers for RGPD compliance (24h max)
     const headers = new Headers();
     headers.set('Cache-Control', 'public, max-age=86400, s-maxage=86400');
-    headers.set('X-Data-Source', 'MCP data.gouv.fr');
+    headers.set('X-Data-Source', 'recherche-entreprises.api.gouv.fr');
     headers.set('X-Cache-TTL', '86400');
-    headers.set('X-RateLimit-Limit', '100');
-    headers.set('X-RateLimit-Remaining', '99');
 
-    return new NextResponse(JSON.stringify(response), {
-      status: 200,
-      headers
-    });
+    return new NextResponse(JSON.stringify(response), { status: 200, headers });
 
   } catch (error) {
-    console.error('[MCP API Error]:', error);
+    console.error('[MCP API Error] Falling back to mock data:', error);
+
+    // Fallback mock si l'API est down
     return NextResponse.json(
-      { 
-        error: "Service temporairement indisponible",
-        message: "Le service MCP data.gouv.fr ne répond pas. Veuillez réessayer dans quelques instants.",
-        retryAfter: 30
+      {
+        companies: MOCK_FALLBACK,
+        metadata: {
+          total: MOCK_FALLBACK.length,
+          page: 1,
+          totalPages: 1,
+          perPage: 25,
+          hasMore: false,
+          cache: { source: 'mock-fallback', freshness: 'static' },
+        },
+        _warning: 'API indisponible — données de démonstration',
       },
-      { status: 503 }
+      {
+        status: 200,
+        headers: { 'X-Data-Source': 'mock-fallback', 'X-API-Error': 'true' },
+      }
     );
   }
 }
 
+// ─── POST ─────────────────────────────────────────────────────────────────────
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { postalCode, radius, nafCode, employeeRange } = body;
+    const { postalCode, nafCode, employeeRange, page } = body;
 
-    // Validate required fields
     if (!postalCode) {
-      return NextResponse.json(
-        { error: "Le code postal est requis" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Le code postal est requis' }, { status: 400 });
     }
 
     if (!/^\d{5}$/.test(postalCode)) {
-      return NextResponse.json(
-        { error: "Code postal invalide (5 chiffres requis)" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Code postal invalide (5 chiffres requis)' }, { status: 400 });
     }
 
-    if (radius && (radius < 1 || radius > 100)) {
-      return NextResponse.json(
-        { error: "Le rayon doit être compris entre 1 et 100 km" },
-        { status: 400 }
-      );
-    }
-
-    // Simulate processing time
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    // Call GET handler with the same logic
+    // Déléguer au GET handler
     const mockUrl = new URL('http://localhost/api/mcp/companies');
-    if (postalCode) mockUrl.searchParams.set('postalCode', postalCode);
+    mockUrl.searchParams.set('postalCode', postalCode);
     if (nafCode) mockUrl.searchParams.set('nafCode', nafCode);
     if (employeeRange) mockUrl.searchParams.set('employeeRange', employeeRange);
+    if (page) mockUrl.searchParams.set('page', String(page));
 
-    const mockRequest = new NextRequest(mockUrl);
-    return GET(mockRequest);
+    return GET(new NextRequest(mockUrl));
 
   } catch (error) {
     console.error('[MCP API POST Error]:', error);
-    return NextResponse.json(
-      { error: "Erreur de traitement de la requête" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Erreur de traitement de la requête' }, { status: 500 });
   }
 }

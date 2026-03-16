@@ -7,7 +7,7 @@ export default function Home() {
     <div className="space-y-8">
       <div className="text-center">
         <h1 className="text-4xl font-bold text-gray-900 mb-4">
-          Prospection B2B : <span className="text-blue-600">Trouvez des leads qualifiés en 45 secondes</span>
+          Prospection B2B : <span className="text-primary">Trouvez des leads qualifiés en 45 secondes</span>
         </h1>
         <p className="text-xl text-gray-600 max-w-3xl mx-auto">
           Accédez à toutes les entreprises françaises avec leurs données officielles (INSEE).
@@ -29,7 +29,7 @@ export default function Home() {
         <h2 className="text-2xl font-bold text-gray-900 mb-4">Comment trouver vos prochains clients en 3 étapes</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="text-center">
-            <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-4">
+            <div className="w-12 h-12 bg-primary-light text-primary rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-4">
               1
             </div>
             <h3 className="font-semibold text-gray-900 mb-2">Définissez votre cible</h3>
@@ -38,7 +38,7 @@ export default function Home() {
             </p>
           </div>
           <div className="text-center">
-            <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-4">
+            <div className="w-12 h-12 bg-primary-light text-primary rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-4">
               2
             </div>
             <h3 className="font-semibold text-gray-900 mb-2">Explorez les fiches détaillées</h3>
@@ -47,7 +47,7 @@ export default function Home() {
             </p>
           </div>
           <div className="text-center">
-            <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-4">
+            <div className="w-12 h-12 bg-primary-light text-primary rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-4">
               3
             </div>
             <h3 className="font-semibold text-gray-900 mb-2">Exportez et prospectez</h3>
@@ -58,7 +58,7 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-xl shadow-lg p-8 text-white">
+      <div className="bg-gradient-to-r from-primary to-primary-dark rounded-xl shadow-lg p-8 text-white">
         <div className="flex flex-col md:flex-row items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold mb-2">🚀 Testez gratuitement pendant 14 jours</h2>
@@ -68,7 +68,7 @@ export default function Home() {
               <span className="font-semibold">Seulement 29€/mois ensuite</span> – moins cher qu'un café par jour.
             </p>
           </div>
-          <button className="mt-4 md:mt-0 bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors shadow-md">
+          <button className="mt-4 md:mt-0 bg-white text-primary px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors shadow-md">
             Démarrer mon essai gratuit →
           </button>
         </div>

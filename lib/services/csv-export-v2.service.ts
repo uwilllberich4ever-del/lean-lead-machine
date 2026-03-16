@@ -16,6 +16,22 @@ export interface CSVExportOptions {
 export class CSVExportServiceV2 {
   private readonly DEFAULT_MAX_ROWS = 500;
   private readonly DEFAULT_DELIMITER = ';'; // Standard français
+
+  /**
+   * Map custom encoding strings to valid Node.js BufferEncoding
+   */
+  private mapEncoding(encoding: string): BufferEncoding {
+    switch (encoding) {
+      case 'utf-8':
+        return 'utf8';
+      case 'utf-8-bom':
+        return 'utf8'; // BOM will be added separately
+      case 'windows-1252':
+        return 'latin1'; // closest match
+      default:
+        return encoding as BufferEncoding;
+    }
+  }
   
   /**
    * Génère un CSV à partir d'une liste d'entreprises
@@ -292,7 +308,8 @@ export class CSVExportServiceV2 {
     await fs.mkdir(dir, { recursive: true });
     
     // Écrire le fichier
-    await fs.writeFile(filePath, csvContent, options.encoding || 'utf-8');
+    const encoding = options.encoding ? this.mapEncoding(options.encoding) : 'utf8';
+    await fs.writeFile(filePath, csvContent, encoding);
     
     console.log(`CSV exporté: ${filePath} (${companies.length} entreprises)`);
   }

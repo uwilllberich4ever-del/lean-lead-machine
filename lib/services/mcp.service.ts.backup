@@ -1,10 +1,8 @@
 /**
  * Service MCP pour Lean Lead Machine MVP
- * Intégration avec l'API Recherche d'Entreprises (data.gouv.fr)
+ * Intégration avec l'API Recherche d'Entreprises (data.gouv.fr / INSEE)
  * Endpoint: https://recherche-entreprises.api.gouv.fr
  * Public, gratuit, aucune clé API requise.
- * 
- * Mise à jour V2: Utilisation de l'API réelle avec cache 24h et fallback mock
  */
 
 interface MCPCompany {
@@ -19,16 +17,18 @@ interface MCPCompany {
   date_creation: string;
   latitude: number;
   longitude: number;
-  website?: string;
-  email?: string;
-  phone?: string;
-  linkedin?: string;
   dirigeants?: Array<{
     nom: string;
     prenom: string;
     qualite: string;
   }>;
-  statut?: string; // 'Actif' | 'Cessé'
+  capital_social?: number;
+  statut: 'Actif' | 'Cessé' | 'Radié';
+  categorie_juridique?: string;
+  website?: string;
+  email?: string;
+  phone?: string;
+  linkedin?: string;
 }
 
 interface MCPSearchParams {
@@ -48,6 +48,11 @@ interface MCPSearchResponse {
   page: number;
   limit: number;
   hasMore: boolean;
+  metadata: {
+    source: 'recherche-entreprises.api.gouv.fr' | 'mock-fallback';
+    cacheHit: boolean;
+    apiLatency?: number;
+  };
 }
 
 // Mapping des codes d'effectif (tranche_effectif_salarie)
@@ -94,11 +99,6 @@ function getLibelleEffectif(code: string): string {
   return EFFECTIF_MAPPING[code] || 'Effectif non renseigné';
 }
 
-/** Transforme l'état administratif en statut lisible */
-function getStatut(etatAdministratif: string): string {
-  return etatAdministratif === 'A' ? 'Actif' : 'Cessé';
-}
-
 export class MCPService {
   private readonly API_BASE = 'https://recherche-entreprises.api.gouv.fr';
   private cache: Map<string, { data: any; timestamp: number }>;
@@ -138,14 +138,14 @@ export class MCPService {
     const lon = parseFloat(siege.longitude) || 0;
     const codeNaf = result.activite_principale || siege.activite_principale || '';
     const trancheEffectif = result.tranche_effectif_salarie || siege.tranche_effectif_salarie || '00';
-    const etatAdministratif = result.etat_administratif || siege.etat_administratif || 'A';
-
-    // Construire l'adresse complète
-    const addressParts = [];
-    if (siege.numero_voie) addressParts.push(siege.numero_voie);
-    if (siege.type_voie) addressParts.push(siege.type_voie);
-    if (siege.libelle_voie) addressParts.push(siege.libelle_voie);
-    const street = addressParts.join(' ');
+    
+    // Déterminer le statut
+    let statut: 'Actif' | 'Cessé' | 'Radié' = 'Actif';
+    if (result.etat_administratif === 'Cessée') {
+      statut = 'Cessé';
+    } else if (result.etat_administratif === 'Radiée') {
+      statut = 'Radié';
+    }
 
     return {
       siren: result.siren,
@@ -155,18 +155,35 @@ export class MCPService {
       code_naf: codeNaf,
       libelle_naf: getLibelleNaf(codeNaf),
       tranche_effectif: trancheEffectif,
-      libelle_effectif: getLibelleEffectif(trancheEffectif),
+      libelle_effectif: this.getLibelleEffectif(trancheEffectif),
       date_creation: result.date_creation || '',
       latitude: lat,
       longitude: lon,
-      statut: getStatut(etatAdministratif),
-      dirigeants: (result.dirigeants || []).map((d: any) => ({
-        nom: d.nom || d.denomination || '',
-        prenom: d.prenoms || '',
-        qualite: d.qualite || '',
-      })),
+      statut,
       // website/email/phone/linkedin non disponibles sur cette API (enrichissement séparé)
     };
+  }
+
+  /** Convertit un code de tranche d'effectif en libellé */
+  private getLibelleEffectif(tranche: string): string {
+    const effectifs: Record<string, string> = {
+      '00': '0 salarié',
+      '01': '1 ou 2 salariés',
+      '02': '3 à 5 salariés',
+      '03': '6 à 9 salariés',
+      '11': '10 à 19 salariés',
+      '12': '20 à 49 salariés',
+      '21': '50 à 99 salariés',
+      '22': '100 à 199 salariés',
+      '31': '200 à 249 salariés',
+      '32': '250 à 499 salariés',
+      '41': '500 à 999 salariés',
+      '42': '1000 à 1999 salariés',
+      '51': '2000 à 4999 salariés',
+      '52': '5000 à 9999 salariés',
+      '53': '10000 salariés et plus',
+    };
+    return effectifs[tranche] || 'Effectif non renseigné';
   }
 
   async searchCompanies(params: MCPSearchParams): Promise<MCPSearchResponse> {
@@ -215,6 +232,11 @@ export class MCPService {
         page: json.page || page,
         limit: perPage,
         hasMore: (json.page || 1) < (json.total_pages || 1),
+        metadata: {
+          source: 'recherche-entreprises.api.gouv.fr',
+          cacheHit: false,
+          apiLatency: Date.now() - startTime,
+        },
       };
 
       this.storeInCache(cacheKey, response);
@@ -268,6 +290,10 @@ export class MCPService {
       page: params.page || 1,
       limit: params.limit || 10,
       hasMore: false,
+      metadata: {
+        source: 'mock-fallback',
+        cacheHit: false,
+      },
     };
   }
 
@@ -285,13 +311,6 @@ export class MCPService {
       latitude: 48.8566,
       longitude: 2.3522,
       statut: 'Actif',
-      dirigeants: [
-        {
-          nom: 'Dupont',
-          prenom: 'Jean',
-          qualite: 'Président',
-        },
-      ],
     };
   }
 
@@ -299,6 +318,7 @@ export class MCPService {
     const count = Math.min(params.limit || 10, 10);
     return Array.from({ length: count }, (_, i) => {
       const siren = `8${String(i).padStart(8, '0')}`;
+      const trancheEffectif = params.trancheEffectif || '11';
       return {
         siren,
         nom_complet: `Entreprise ${params.codePostal || params.codeNaf || 'Test'} ${i + 1}`,
@@ -306,34 +326,13 @@ export class MCPService {
         ville: params.ville || 'Paris',
         code_naf: params.codeNaf || '62.01Z',
         libelle_naf: params.libelleNaf || 'Programmation informatique',
-        tranche_effectif: params.trancheEffectif || '11',
-        libelle_effectif: getLibelleEffectif(params.trancheEffectif || '11'),
+        tranche_effectif: trancheEffectif,
+        libelle_effectif: this.getLibelleEffectif(trancheEffectif),
         date_creation: '2020-01-01',
         latitude: 48.8566 + (Math.random() - 0.5) * 0.1,
         longitude: 2.3522 + (Math.random() - 0.5) * 0.1,
         statut: 'Actif',
-        dirigeants: [
-          {
-            nom: 'Dupont',
-            prenom: 'Jean',
-            qualite: 'Président',
-          },
-        ],
       };
     });
-  }
-
-  // Méthode utilitaire pour tester la connexion à l'API
-  async testConnection(): Promise<boolean> {
-    try {
-      const resp = await fetch(`${this.API_BASE}/search?q=test&per_page=1`, {
-        headers: { 'Accept': 'application/json' },
-        cache: 'no-store',
-      });
-      return resp.ok;
-    } catch (error) {
-      console.error('MCP connection test failed:', error);
-      return false;
-    }
   }
 }
