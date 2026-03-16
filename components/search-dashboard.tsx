@@ -5,6 +5,7 @@ import { Search, MapPin, Building, Users, Filter, Download } from "lucide-react"
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { NafSelect } from "@/components/naf-select";
 
 const searchSchema = z.object({
   postalCode: z.string().regex(/^\d{5}$/, "Code postal invalide (5 chiffres)"),
@@ -264,14 +265,12 @@ export default function SearchDashboard() {
                   Code NAF
                 </div>
               </label>
-              <input
-                type="text"
-                {...register("nafCode")}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="62.01Z (Informatique)"
+              <NafSelect
+                value={watch("nafCode") || ""}
+                onChange={(value) => setValue("nafCode", value)}
               />
               <p className="mt-1 text-sm text-gray-500">
-                Ex: 62.01Z pour Programmation informatique
+                Tapez pour filtrer ou sélectionnez un code NAF
               </p>
             </div>
 
