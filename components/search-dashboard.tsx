@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Search, MapPin, Building, Users, Filter, Download } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -32,6 +33,7 @@ const employeeRanges = [
 ];
 
 export default function SearchDashboard() {
+  const router = useRouter();
   const [isSearching, setIsSearching] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -369,7 +371,10 @@ export default function SearchDashboard() {
                       </span>
                     </div>
                   </div>
-                  <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                  <button 
+                    onClick={() => router.push(`/company/${company.siren}`)}
+                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                  >
                     Voir la fiche →
                   </button>
                 </div>
