@@ -15,11 +15,11 @@ export default function Home() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div className="lg:col-span-3">
           <SearchDashboard />
         </div>
-        <div className="space-y-8">
+        <div className="lg:col-span-2 space-y-6">
           <StatsOverview />
           <RecentSearches />
         </div>
@@ -58,18 +58,18 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="bg-gradient-to-r from-primary to-primary-dark rounded-xl shadow-lg p-8 text-white">
+      <div className="bg-primary rounded-2xl p-8 mx-4 shadow-lg">
         <div className="flex flex-col md:flex-row items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold mb-2">🚀 Testez gratuitement pendant 14 jours</h2>
-            <p className="opacity-90">
+            <h2 className="text-white text-2xl font-bold mb-2">🚀 Testez gratuitement pendant 14 jours</h2>
+            <p className="text-blue-100 mt-2">
               Accédez à toutes les fonctionnalités premium sans carte de crédit. 
               <br />
               <span className="font-semibold">Seulement 29€/mois ensuite</span> – moins cher qu'un café par jour.
             </p>
           </div>
-          <button className="mt-4 md:mt-0 bg-white text-primary px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors shadow-md">
-            Démarrer mon essai gratuit →
+          <button className="mt-4 md:mt-0 bg-white text-primary font-semibold px-6 py-3 rounded-lg hover:bg-gray-100 shadow-md">
+            Commencer gratuitement →
           </button>
         </div>
       </div>

@@ -209,21 +209,21 @@ export default function SearchDashboard() {
       </form>
 
       {searchResults.length > 0 && (
-        <div className="mt-8">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+        <div className="mt-6">
+          <h3 className="text-base font-semibold text-gray-900 mb-3">
             {searchResults.length} entreprises trouvées
           </h3>
-          <div className="space-y-4">
+          <div className="space-y-3">
             {searchResults.map((company) => (
               <div
                 key={company.id}
-                className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                className="border border-gray-200 rounded-lg p-3 hover:bg-gray-50 transition-colors"
               >
                 <div className="flex justify-between items-start">
                   <div>
-                    <h4 className="font-semibold text-gray-900">{company.name}</h4>
+                    <h4 className="text-base font-semibold text-gray-900">{company.name}</h4>
                     <p className="text-sm text-gray-600 mt-1">{company.address}</p>
-                    <div className="flex items-center space-x-4 mt-2">
+                    <div className="flex items-center space-x-3 mt-2">
                       <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
                         SIREN: {company.siren}
                       </span>
